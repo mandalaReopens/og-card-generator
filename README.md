@@ -102,7 +102,7 @@ A powerful Chrome extension that fetches Open Graph metadata from websites and t
 
 ## 📸 Screenshots
 
-Screenshots available in the `/screenshots` directory showing:
+Screenshots available in the `images/screenshots` directory showing:
 - Main card generation interface
 - Formatting customization options
 - Advanced settings
