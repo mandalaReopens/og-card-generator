@@ -48,11 +48,21 @@ A powerful Chrome extension that fetches Open Graph metadata from websites and t
 3. Click "Add Extension" in the popup
 
 ### Manual Installation (Developer Mode)
-1. Download or clone this repository
+
+**Option 1: Download Packed Extension (Recommended)**
+1. Download `og-card-generator.zip` from the [Releases](https://github.com/mandalaReopens/og-card-generator/releases) page
+2. Extract the zip file to a folder on your computer
+3. Open Chrome and navigate to `chrome://extensions/`
+4. Enable "Developer mode" in the top right
+5. Click "Load unpacked"
+6. Select the extracted extension folder
+
+**Option 2: Clone Repository**
+1. Clone this repository: `git clone https://github.com/mandalaReopens/og-card-generator.git`
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
 4. Click "Load unpacked"
-5. Select the extension directory
+5. Select the cloned extension directory
 
 ## 📖 How to Use
 
@@ -102,12 +112,15 @@ A powerful Chrome extension that fetches Open Graph metadata from websites and t
 
 ## 📸 Screenshots
 
-Screenshots available in the `images/screenshots` directory showing:
-- Main card generation interface
-- Formatting customization options
-- Advanced settings
-- Color scheme management
-- Card history
+### Main Interface
+The main card generation interface with URL input, preview, and copy options.
+
+![Main Interface](images/screenshots/5th-place-og-card-generator-01-main-interface.png)
+
+### Settings Page
+Comprehensive formatting controls including colors, fonts, borders, and advanced options.
+
+![Settings Page](images/screenshots/5th-place-og-card-generator-02-settings-page.png)
 
 ## 🎯 Version
 
