@@ -1,7 +1,7 @@
 <div align="center">
   <img src="images/icon.png" alt="OG Card Generator Icon" width="128" height="128">
   <h1>OG Card Generator</h1>
-  <p><em>A powerful Chrome extension that fetches Open Graph metadata from websites and transforms it into beautifully formatted preview cards perfect for email sharing.</em></p>
+  <p><em>A Chrome extension that fetches Open Graph metadata from websites and transforms it into beautifully formatted preview cards for email sharing. Works with all Chromium-based browsers.</em></p>
 </div>
 
 ---
