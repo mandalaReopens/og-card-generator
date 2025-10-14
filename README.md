@@ -1,8 +1,12 @@
-# OG Card Generator
+<div align="center">
+  <img src="images/icon.png" alt="OG Card Generator Icon" width="128" height="128">
+  <h1>OG Card Generator</h1>
+  <p><em>A powerful Chrome extension that fetches Open Graph metadata from websites and transforms it into beautifully formatted preview cards perfect for email sharing.</em></p>
+</div>
+
+---
 
 ![OG Card Generator](images/og-card-generator-main-image.png)
-
-A powerful Chrome extension that fetches Open Graph metadata from websites and transforms it into beautifully formatted preview cards perfect for email sharing.
 
 ## ✨ Features
 
