@@ -1,0 +1,22 @@
+# Development screenshots
+screenshots-dev/
+
+# Claude Code configuration
+.claude/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
