@@ -1,6 +1,9 @@
 # Development screenshots
 images/screenshots-dev/
 
+# Planning and strategy docs (private)
+docs/
+
 # Claude Code configuration
 .claude/
 
