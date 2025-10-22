@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OG Card Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600&family=Open+Sans:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="top-bar">
+    <div class="title-section">
+      <img src="images/icon.png" alt="OG Card Generator Icon">
+      <h2>OG Card Generator</h2>
+      <span id="statusIcon" class="icon" role="status" aria-live="polite"></span>
+    </div>
+    <div class="settings-btn-wrapper">
+      <button id="settingsBtn" class="toolbar-btn" aria-label="Open OG Card Generator settings" data-tooltip="OG Card Generator settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
+          <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Section 1: Website Address -->
+  <div class="section-card">
+    <h4 class="group-title">Website Address</h4>
+
+    <div class="input-toggle-row">
+      <div class="input-wrapper">
+        <input type="url" id="urlInput" placeholder="Enter URL or use actions below" aria-label="URL to generate card from">
+        <button id="clearInputBtn" class="clear-input-btn" aria-label="Clear input field" title="Clear input field">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z" />
+            <path d="M9 9l6 6m0 -6l-6 6" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="smart-select-wrapper">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="smartSelectToggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="smartSelectLabel">Use OG Image Selection</span><svg id="smartSelectIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4169E1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M15 8h.01" />
+            <path d="M11 20h-4a3 3 0 0 1 -3 -3v-10a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v4" />
+            <path d="M4 15l4 -4c.928 -.893 2.072 -.893 3 0l3 3" />
+            <path d="M14 14l1 -1c.617 -.593 1.328 -.793 2.009 -.598" />
+            <path d="M16 19h6" />
+            <path d="M19 16v6" />
+          </svg>
+        </div>
+
+        <!-- Brand Cards Checkbox (shown when Smart Image Selection is enabled) -->
+        <div class="brand-cards-wrapper" id="brandCardsWrapper" style="display: none;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="useBrandCardsToggle">
+            <span>Create Brand Card</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-toolbar">
+      <button id="useCurrentTabBtn" class="toolbar-btn" aria-label="Generate card from current URL" data-tooltip="Generate card from current URL"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M4 4m0 1a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-14a1 1 0 0 1 -1 -1z" />
+          <path d="M4 8h16" />
+          <path d="M8 4v4" />
+          <path d="M9.5 14.5l1.5 1.5l3 -3" />
+        </svg>
+      </button>
+      <button id="generateNewBtn" class="toolbar-btn" aria-label="Generate card from any URL" data-tooltip="Generate card from any URL">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M4 8h16" />
+          <path d="M12 20h-6a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v6" />
+          <path d="M8 4v4" />
+          <path d="M16 19h6" />
+          <path d="M19 16v6" />
+        </svg>
+      </button>
+      <span class="loader" id="generatingSpinner" style="display: none;"></span>
+    </div>
+  </div>
+
+  <!-- Section 2: Card Preview -->
+  <div class="section-card">
+    <div class="preview-header">
+      <h4 class="group-title">Card Preview</h4>
+
+      <!-- Freshness indicator (shown when cached card is loaded) -->
+      <div id="freshnessIndicator" style="display: none;">
+        <span style="font-size: 11px; color: #666;">CARD CREATED: <span id="cardDate"></span> &bull; <span id="cardTime"></span></span>
+        <span class="battery-wrapper" data-tooltip="Card Status: Fresh">
+          <svg id="batteryIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Battery SVG will be dynamically updated -->
+          </svg>
+        </span>
+      </div>
+    </div>
+
+    <div id="preview" role="region" aria-label="Card preview"></div>
+  </div>
+
+  <!-- Section 3: Copy Card -->
+  <div class="section-card">
+    <h4 class="group-title">Copy Card</h4>
+
+    <div id="copyToolbar" class="copy-toolbar">
+      <!-- Group 1: Sharing -->
+      <div class="copy-button-group">
+        <div class="copy-group-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M13 4v4c-6.575 1.028 -9.02 6.788 -10 12c-.037 .206 5.384 -5.962 10 -6v4l8 -7l-8 -7z" />
+          </svg>
+          <span>Sharing</span>
+        </div>
+        <div class="copy-group-buttons">
+          <button id="copyEmailBtn" class="toolbar-btn" aria-label="Copy for email (Gmail, Outlook, etc.)" data-tooltip="Copy for Email">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+              <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+              <path d="M9 14l2 2l4 -4" />
+            </svg>
+          </button>
+          <button id="copyChatBtn" class="toolbar-btn" aria-label="Copy for chat (Slack, Discord, Teams, etc.)" data-tooltip="Copy for Chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M10 13h.01" />
+              <path d="M14 13h.01" />
+              <path d="M10 16a3.5 3.5 0 0 0 4 0" />
+              <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+              <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 2: Documents & Media -->
+      <div class="copy-button-group">
+        <div class="copy-group-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M15 3v4a1 1 0 0 0 1 1h4" />
+            <path d="M18 17h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h4l5 5v7a2 2 0 0 1 -2 2z" />
+            <path d="M16 17v2a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h2" />
+          </svg>
+          <span>Documents & Media</span>
+        </div>
+        <div class="copy-group-buttons">
+          <button id="copyDocumentsBtn" class="toolbar-btn" aria-label="Copy for documents (Google Docs, Word, etc.)" data-tooltip="Copy for Documents">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+              <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+              <path d="M9 12h6" />
+              <path d="M9 16h6" />
+            </svg>
+          </button>
+          <button id="copyImageBtn" class="toolbar-btn" aria-label="Copy as image (PNG)" data-tooltip="Copy as Image">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h3m9 -9v-5a2 2 0 0 0 -2 -2h-2" />
+              <path d="M13 17v-1a1 1 0 0 1 1 -1h1m3 0h1a1 1 0 0 1 1 1v1m0 3v1a1 1 0 0 1 -1 1h-1m-3 0h-1a1 1 0 0 1 -1 -1v-1" />
+              <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 3: Developer -->
+      <div class="copy-button-group">
+        <div class="copy-group-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M7 8l-4 4l4 4" />
+            <path d="M17 8l4 4l-4 4" />
+            <path d="M14 4l-4 16" />
+          </svg>
+          <span>Developer</span>
+        </div>
+        <div class="copy-group-buttons">
+          <button id="copyHtmlCodeBtn" class="toolbar-btn" aria-label="Copy HTML code (for developers)" data-tooltip="Copy HTML Code">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+              <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+              <path d="M8 11l0 6" />
+              <path d="M11 11l0 6" />
+              <path d="M14 11l0 1" />
+              <path d="M14 15l0 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Debug Output -->
+  <div id="debugContainer" class="section-card" style="display: none;">
+    <h4 class="group-title">Debug Output</h4>
+
+    <div id="debug" style="font-size: 10px; color: #666; padding: 10px; background: #f5f5f5; border-radius: 5px; max-height: 200px; overflow-y: auto; cursor: pointer; user-select: none;"></div>
+
+    <div class="debug-toolbar">
+      <button id="copyDebugBtn" class="debug-toolbar-btn" aria-label="Copy debug output" data-tooltip="Copy debug log output">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+          <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

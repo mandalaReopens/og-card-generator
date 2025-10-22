@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OG Card Generator - Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600&family=Open+Sans:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="settings-page">
+  <div class="settings-header">
+    <div class="settings-header-title">
+      <img src="images/icon.png" alt="OG Card Generator Icon">
+      <h2>OG Card Generator <span class="settings-arrow">&#10132;</span> Settings</h2>
+    </div>
+    <button id="closeSettingsBtn" class="close-btn" aria-label="Close settings" data-tooltip="Close settings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z" />
+        <path d="M9 9l6 6m0 -6l-6 6" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="settings-tabs">
+    <div class="settings-tab" data-page="formatting.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25" />
+        <path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+        <path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+        <path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+      </svg>
+      <span>Formatting</span>
+    </div>
+    <div class="settings-tab" data-page="advanced.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3 -5a9 9 0 0 0 6 -8a3 3 0 0 0 -3 -3a9 9 0 0 0 -8 6a6 6 0 0 0 -5 3" />
+        <path d="M7 14a6 6 0 0 0 -3 6a6 6 0 0 0 6 -3" />
+        <path d="M15 9m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+      </svg>
+      <span>Advanced</span>
+    </div>
+    <div class="settings-tab active">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+        <path d="M12 16v.01" />
+        <path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" />
+      </svg>
+      <span>Help</span>
+    </div>
+    <div class="settings-tab" data-page="credits.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M7 11v8a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1h3a4 4 0 0 0 4 -4v-1a2 2 0 0 1 4 0v5h3a2 2 0 0 1 2 2l-1 5a2 3 0 0 1 -2 2h-7a3 3 0 0 1 -3 -3" />
+      </svg>
+      <span>Credits</span>
+    </div>
+    <div class="settings-tab" data-page="about.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M18 8a3 3 0 0 1 0 6" />
+        <path d="M10 8v11a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-5" />
+        <path d="M12 8h0l4.524 -3.77a.9 .9 0 0 1 1.476 .692v12.156a.9 .9 0 0 1 -1.476 .692l-4.524 -3.77h-8a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h8" />
+      </svg>
+      <span>About</span>
+    </div>
+  </div>
+
+  <!-- Settings Content Area -->
+  <div class="settings-content">
+    <!-- Features Accordion -->
+    <div class="accordion-item">
+      <div class="accordion-header" data-accordion="features">
+        <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9 11l3 3l8 -8" />
+          <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" />
+        </svg>
+        <div class="accordion-text">
+          <h3 class="accordion-title">Features</h3>
+          <p class="accordion-description">Discover what OG Card Generator can do for you</p>
+        </div>
+        <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M6 9l6 6l6 -6" />
+        </svg>
+      </div>
+      <div class="accordion-content" id="features">
+        <ul>
+          <li>Automatic OG image selection</li>
+          <li>Smart image selection with intelligent scoring algorithm that evaluates image quality, dimensions, and relevance</li>
+          <li>Favicon Brand Cards - Universal brand cards using site favicons with automatic color detection</li>
+          <li>Customizable formatting and color schemes</li>
+          <li>Border styling options</li>
+          <li>Debug mode for developers</li>
+          <li>Card history persistence</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- How to Use Accordion -->
+    <div class="accordion-item">
+      <div class="accordion-header" data-accordion="howto">
+        <svg class="accordion-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+          <path d="M12 16v.01" />
+          <path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" />
+        </svg>
+        <div class="accordion-text">
+          <h3 class="accordion-title">How to Use</h3>
+          <p class="accordion-description">Step-by-step guide to generating cards</p>
+        </div>
+        <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M6 9l6 6l6 -6" />
+        </svg>
+      </div>
+      <div class="accordion-content" id="howto">
+        <ol>
+          <li>Enter a URL or use the "current tab" button</li>
+          <li>Toggle between OG and Smart image selection, optionally enable Brand Cards for favicon-based cards</li>
+          <li>Preview the generated card</li>
+          <li>Copy as formatted HTML or raw code</li>
+          <li>Customize appearance in Formatting settings</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="settings-actions">
+      <button id="resetSettingsBtn" class="toolbar-btn" aria-label="Reset to defaults" data-tooltip="Reset to defaults">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9.451 5.437c.418 -.218 .75 -.609 .874 -1.12c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35c-.486 .118 -.894 .44 -1.123 .878m-.188 3.803c-.517 .523 -1.349 .734 -2.125 .262a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.472 -.774 -.262 -1.606 .395 -2.28" />
+          <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+          <path d="M3 3l18 18" />
+        </svg>
+      </button>
+      <button id="saveSettingsBtn" class="toolbar-btn" aria-label="Save settings" data-tooltip="Save settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M11.445 20.913a1.665 1.665 0 0 1 -1.12 -1.23a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.31 .318 1.643 1.79 .997 2.694" />
+          <path d="M15 19l2 2l4 -4" />
+          <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Modal -->
+  <div id="unsavedModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <svg class="modal-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+          <path d="M12 9v4" />
+          <path d="M12 16v.01" />
+        </svg>
+        <h3 class="modal-title">Unsaved Changes</h3>
+      </div>
+      <p class="modal-message">You have unsaved formatting changes. Do you want to save before closing?</p>
+      <div class="modal-buttons">
+        <button id="modalCancelBtn" class="modal-btn modal-btn-outline">Cancel</button>
+        <button id="modalDiscardBtn" class="modal-btn modal-btn-secondary">Don't Save</button>
+        <button id="modalSaveBtn" class="modal-btn modal-btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/accordion-simple.js"></script>
+  <script src="js/help.js"></script>
+</body>
+</html>
