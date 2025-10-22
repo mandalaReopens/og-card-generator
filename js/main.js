@@ -1,3 +1,65 @@
+// Import utility functions
+import {
+  normalizeURL,
+  toAbsoluteURL,
+  dataURLToBlob,
+  blobToDataURL,
+  getImageDimensionsFromBlob,
+  getImageDimensions,
+  isSvgUrl,
+  rasterizeSvg,
+  hexToRGB,
+  getLuminance,
+  calculateContrast,
+  escapeHTML,
+  extractPlainText
+} from './utils.js';
+
+// Import border rendering functions
+import {
+  getBorderColor,
+  addBorderToFullSizeCard,
+  addBorderToThumbnail,
+  addBorderToBlob
+} from './border-renderer.js';
+
+// Import image scanner functions
+import {
+  setDebugLogger as setImageScannerDebugLogger,
+  validateImage,
+  scoreImage,
+  selectImageByDomainMatch,
+  selectBestFallbackImage
+} from './image-scanner.js';
+
+// Import brand card generator functions
+import {
+  setDebugLogger as setBrandCardDebugLogger,
+  sampleEdgePixels,
+  calculateLuminance,
+  generateBrandedCard,
+  fetchFavicon,
+  analyzeLogoColors,
+  generateFaviconBrandCard
+} from './brand-card-generator.js';
+
+// Import card generator functions
+import {
+  setDebugLogger as setCardGeneratorDebugLogger,
+  generateDomainCard,
+  cropToThumbnail,
+  createPlaceholder
+} from './card-generator.js';
+
+// Import HTML generator functions
+import {
+  generateCardHTML,
+  generateEmailHTML,
+  generateDocumentHTML,
+  generateMarkdown,
+  generateCardImage
+} from './html-generators.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   const urlInput = document.getElementById('urlInput');
   const clearInputBtn = document.getElementById('clearInputBtn');
@@ -43,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
     debugDiv.scrollTop = debugDiv.scrollHeight;
   }
 
+  // Initialize debugLog for image-scanner, brand-card-generator, and card-generator modules
+  setImageScannerDebugLogger(debugLog);
+  setBrandCardDebugLogger(debugLog);
+  setCardGeneratorDebugLogger(debugLog);
+
   function clearDebug() {
     if (!debugDiv) return;
     debugDiv.innerHTML = '';
@@ -55,23 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsBtn = document.getElementById('settingsBtn');
 
   // Configuration constants
-  const THUMB_WIDTH = 200;
-  const THUMB_HEIGHT = 112;
   const FETCH_TIMEOUT = 10000; // 10 seconds
   const MAX_DESCRIPTION_LENGTH = 130;
-  const MIN_IMAGE_WIDTH = 400;
-  const MIN_IMAGE_HEIGHT = 200;
   const MIN_ASPECT_RATIO = 0.8;
-  const MAX_ASPECT_RATIO = 3;
-  const IDEAL_ASPECT_RATIO = 1.91; // ~16:9, ideal for card layouts
   const SVG_RASTER_SIZE = 1200; // Standard size for SVG rasterization
-  const IMAGE_QUALITY = 0.9;
-  const IMAGE_EXCLUDED_KEYWORDS = [
-    'icon', 'avatar', 'logo', 'badge', 'button', 'sprite',
-    'pixel', 'tracking', 'ad', 'banner', 'widget', 'thumb',
-    'nav', 'social', 'comment', 'sidebar', 'footer', 'header',
-    'menu', 'spacer', 'dot', 'arrow', 'bullet', 'bg', 'background'
-  ];
   const COPY_FEEDBACK_DURATION = 2000; // ms
 
   // State flag to prevent concurrent generations
@@ -182,7 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastCardData.desc,
                 lastCardData.embeddedImageUrl,
                 lastCardData.domain,
-                lastCardData.url
+                lastCardData.url,
+                currentSettings
               );
             }
             if (!lastCardData.documentHtml) {
@@ -191,7 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastCardData.desc,
                 lastCardData.embeddedImageUrl,
                 lastCardData.domain,
-                lastCardData.url
+                lastCardData.url,
+                currentSettings
               );
             }
             if (!lastCardData.chatMarkdown) {
@@ -208,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastCardData.desc,
                 'og-card-thumbnail.png',
                 lastCardData.domain,
-                lastCardData.url
+                lastCardData.url,
+                currentSettings
               );
             }
 
@@ -217,7 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
               lastCardData.desc,
               lastCardData.embeddedImageUrl,
               lastCardData.domain,
-              lastCardData.url
+              lastCardData.url,
+              currentSettings
             );
             preview.innerHTML = restoredHtml;
             copyToolbar.classList.add('visible');
@@ -468,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const domain = 'examplecard.com';
     const url = 'https://5th.place/og-card';
 
-    const exampleHtml = generateCardHTML(title, desc, imageUrl, domain, url);
+    const exampleHtml = generateCardHTML(title, desc, imageUrl, domain, url, currentSettings);
 
     // Store example card data with all pre-rendered formats
     lastCardData = {
@@ -479,10 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
       url: url,
       timestamp: Date.now(),
       // Pre-rendered formats
-      emailHtml: generateEmailHTML(title, desc, imageUrl, domain, url),
-      documentHtml: generateDocumentHTML(title, desc, imageUrl, domain, url),
+      emailHtml: generateEmailHTML(title, desc, imageUrl, domain, url, currentSettings),
+      documentHtml: generateDocumentHTML(title, desc, imageUrl, domain, url, currentSettings),
       chatMarkdown: generateMarkdown(title, desc, domain, url),
-      htmlCode: generateCardHTML(title, desc, 'og-card-thumbnail.png', domain, url)
+      htmlCode: generateCardHTML(title, desc, 'og-card-thumbnail.png', domain, url, currentSettings)
     };
 
     preview.innerHTML = exampleHtml;
@@ -511,19 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-
-  // Helper: Normalize URL input
-  function normalizeURL(input) {
-    let url = input.trim();
-
-    // If already has protocol, return as-is
-    if (url.match(/^https?:\/\//i)) {
-      return url;
-    }
-
-    // Add https:// prefix for bare domains
-    return 'https://' + url;
-  }
 
   // Show/hide clear button based on input content
   function updateClearButton() {
@@ -572,911 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
     generateCard();
   });
 
-  // Helper: Decode data URL to blob for processing
-  async function dataURLToBlob(dataURL) {
-    try {
-      const parts = dataURL.split(',');
-      if (parts.length !== 2) return null;
-
-      const mimeMatch = parts[0].match(/:(.*?);/);
-      if (!mimeMatch) return null;
-
-      const mime = mimeMatch[1];
-      const bstr = atob(parts[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-
-      return new Blob([u8arr], { type: mime });
-    } catch (e) {
-      debugLog(`[ERROR] Failed to decode data URL: ${e.message}`);
-      return null;
-    }
-  }
-
-  // Helper: Convert relative URLs to absolute URLs
-  function toAbsoluteURL(imageSrc, pageUrl) {
-    // Already absolute? Use as-is
-    if (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) {
-      return imageSrc;
-    }
-
-    try {
-      const base = new URL(pageUrl);
-
-      // Protocol-relative: //cdn.example.com/image.png
-      if (imageSrc.startsWith('//')) {
-        return base.protocol + imageSrc;
-      }
-
-      // Absolute path: /images/logo.png
-      if (imageSrc.startsWith('/')) {
-        return base.origin + imageSrc;
-      }
-
-      // Relative path: images/logo.png
-      return new URL(imageSrc, pageUrl).href;
-    } catch (e) {
-      debugLog(`[ERROR] Failed to convert relative URL: ${imageSrc}`);
-      return null;
-    }
-  }
-
-  // Helper: Get image dimensions from blob
-  async function getImageDimensionsFromBlob(blob) {
-    return new Promise((resolve) => {
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      const timeout = setTimeout(() => {
-        URL.revokeObjectURL(url);
-        resolve(null);
-      }, 5000);
-
-      img.onload = () => {
-        clearTimeout(timeout);
-        URL.revokeObjectURL(url);
-        resolve({ src: url, width: img.naturalWidth, height: img.naturalHeight });
-      };
-
-      img.onerror = () => {
-        clearTimeout(timeout);
-        URL.revokeObjectURL(url);
-        resolve(null);
-      };
-
-      img.src = url;
-    });
-  }
-
-  // Helper: Load image to get dimensions
-  async function getImageDimensions(src) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const timeout = setTimeout(() => resolve(null), 5000);
-
-      img.onload = () => {
-        clearTimeout(timeout);
-        resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-
-      img.onerror = () => {
-        clearTimeout(timeout);
-        resolve(null);
-      };
-
-      img.src = src;
-    });
-  }
-
-  // Helper: Check if URL is an SVG
-  function isSvgUrl(url) {
-    return url.toLowerCase().endsWith('.svg') || url.toLowerCase().includes('.svg?');
-  }
-
-  // Helper: Rasterize SVG to PNG blob
-  async function rasterizeSvg(svgUrl) {
-    try {
-      debugLog(`[INFO] Attempting to rasterize SVG: ${svgUrl.split('/').pop()}`);
-
-      const response = await fetch(svgUrl);
-      if (!response.ok) {
-        debugLog(`[FAIL] Could not fetch SVG (status ${response.status})`);
-        return null;
-      }
-
-      const svgText = await response.text();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-
-      return new Promise((resolve) => {
-        const img = new Image();
-        const timeout = setTimeout(() => {
-          URL.revokeObjectURL(url);
-          debugLog(`[FAIL] SVG rasterization timeout`);
-          resolve(null);
-        }, 5000);
-
-        img.onload = () => {
-          clearTimeout(timeout);
-
-          // Create canvas and draw SVG at standard high resolution
-          const canvas = document.createElement('canvas');
-
-          // Use intrinsic dimensions if available and larger than standard, otherwise use standard size
-          const naturalWidth = img.naturalWidth || img.width || SVG_RASTER_SIZE;
-          const naturalHeight = img.naturalHeight || img.height || SVG_RASTER_SIZE;
-
-          canvas.width = Math.max(naturalWidth, SVG_RASTER_SIZE);
-          canvas.height = Math.max(naturalHeight, SVG_RASTER_SIZE);
-
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          URL.revokeObjectURL(url);
-
-          canvas.toBlob((pngBlob) => {
-            if (pngBlob) {
-              debugLog(`[OK] SVG rasterized to PNG (${canvas.width}x${canvas.height})`);
-              resolve(pngBlob);
-            } else {
-              debugLog(`[FAIL] Could not convert SVG to PNG blob`);
-              resolve(null);
-            }
-          }, 'image/png');
-        };
-
-        img.onerror = () => {
-          clearTimeout(timeout);
-          URL.revokeObjectURL(url);
-          debugLog(`[FAIL] Could not load SVG image`);
-          resolve(null);
-        };
-
-        img.src = url;
-      });
-    } catch (err) {
-      debugLog(`[ERROR] SVG rasterization failed: ${err.message}`);
-      return null;
-    }
-  }
-
-  // Helper: Convert blob to data URL
-  async function blobToDataURL(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  // Helper: Generate branded domain card as fallback
-  async function generateDomainCard(domain) {
-    try {
-      debugLog(`[INFO] Generating domain card for: ${domain}`);
-
-      // Strip common prefixes (www, www2, etc.)
-      const cleanDomain = domain.replace(/^(www\d*\.|m\.|mobile\.)/i, '');
-
-      // Create canvas (standard OG image size)
-      const canvas = document.createElement('canvas');
-      const width = 1200;
-      const height = 630;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      // Colors
-      const teal = '#225560';
-      const yellow = '#FDCA40';
-      const green = '#179355';
-      const white = '#FFFFFF';
-
-      // Fill background
-      ctx.fillStyle = white;
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw border (much thicker - must be visible after crop to 200x112)
-      ctx.strokeStyle = teal;
-      ctx.lineWidth = 16;
-      ctx.strokeRect(8, 8, width - 16, height - 16);
-
-      // Draw photo icon (top-left, much larger)
-      const iconX = 60;
-      const iconY = 60;
-      const iconSize = 140;
-
-      // Create SVG icon with thicker stroke
-      const photoIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${teal}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 8h.01" />
-        <path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z" />
-        <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
-        <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
-      </svg>`;
-
-      const iconBlob = new Blob([photoIconSvg], { type: 'image/svg+xml' });
-      const iconUrl = URL.createObjectURL(iconBlob);
-
-      // Load and draw icon
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
-          URL.revokeObjectURL(iconUrl);
-          resolve();
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(iconUrl);
-          resolve(); // Continue even if icon fails
-        };
-        img.src = iconUrl;
-      });
-
-      // Draw "OG" branding (top-right, much larger)
-      const ogY = 60;
-      const ogFontSize = 110;
-      ctx.font = `bold ${ogFontSize}px Outfit, sans-serif`;
-      ctx.textBaseline = 'top';
-
-      // Draw "O" in yellow (measure first to position correctly)
-      ctx.fillStyle = yellow;
-      const oText = 'O';
-      const oWidth = ctx.measureText(oText).width;
-      const gText = 'G';
-      const gWidth = ctx.measureText(gText).width;
-      const totalWidth = oWidth + gWidth;
-
-      // Position from right edge
-      const ogX = width - 60;
-      ctx.textAlign = 'left';
-      ctx.fillText(oText, ogX - totalWidth, ogY);
-
-      // Draw "G" in green (right after "O")
-      ctx.fillStyle = green;
-      ctx.fillText(gText, ogX - totalWidth + oWidth, ogY);
-
-      // Draw domain name (bottom-center, moved up)
-      const domainUpper = cleanDomain.toUpperCase();
-      const domainY = 470; // Moved up from 560
-      const domainLen = domainUpper.length;
-
-      // Graded font sizes based on domain length
-      let fontSize;
-      if (domainLen <= 10) {
-        fontSize = 120; // Large for short domains
-      } else if (domainLen <= 15) {
-        fontSize = 100; // Medium for medium domains
-      } else if (domainLen <= 20) {
-        fontSize = 80; // Smaller for longer domains
-      } else {
-        fontSize = 64; // Smallest for very long domains
-      }
-
-      const maxWidth = 1080; // Leave margins
-
-      // Calculate optimal font size
-      ctx.font = `bold ${fontSize}px Outfit, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      let textWidth = ctx.measureText(domainUpper).width;
-
-      // Scale down if still too wide
-      if (textWidth > maxWidth) {
-        fontSize = Math.max(48, Math.floor(fontSize * (maxWidth / textWidth)));
-        ctx.font = `bold ${fontSize}px Outfit, sans-serif`;
-      }
-
-      // Draw domain text in teal
-      ctx.fillStyle = teal;
-      ctx.fillText(domainUpper, width / 2, domainY);
-
-      // Convert canvas to blob
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            debugLog(`[OK] Domain card generated (${width}x${height})`);
-            resolve(blob);
-          } else {
-            debugLog(`[FAIL] Could not convert canvas to blob`);
-            resolve(null);
-          }
-        }, 'image/png');
-      });
-
-    } catch (err) {
-      debugLog(`[ERROR] Domain card generation failed: ${err.message}`);
-      return null;
-    }
-  }
-
-  // Helper: Sample edge pixels from image to detect dominant background color
-  function sampleEdgePixels(img) {
-    // Create temporary canvas to analyze image
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(img, 0, 0);
-
-    const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
-    const pixels = imageData.data;
-
-    // Sample pixels from edges
-    const samples = [];
-    const sampleCount = 20; // Sample 20 pixels per edge
-
-    // Top edge
-    for (let i = 0; i < sampleCount; i++) {
-      const x = Math.floor((img.width / sampleCount) * i);
-      const idx = (0 * img.width + x) * 4;
-      samples.push({ r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] });
-    }
-
-    // Bottom edge
-    for (let i = 0; i < sampleCount; i++) {
-      const x = Math.floor((img.width / sampleCount) * i);
-      const idx = ((img.height - 1) * img.width + x) * 4;
-      samples.push({ r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] });
-    }
-
-    // Left edge
-    for (let i = 0; i < sampleCount; i++) {
-      const y = Math.floor((img.height / sampleCount) * i);
-      const idx = (y * img.width + 0) * 4;
-      samples.push({ r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] });
-    }
-
-    // Right edge
-    for (let i = 0; i < sampleCount; i++) {
-      const y = Math.floor((img.height / sampleCount) * i);
-      const idx = (y * img.width + (img.width - 1)) * 4;
-      samples.push({ r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] });
-    }
-
-    // Find most common color (simple averaging for now - could be improved with clustering)
-    let totalR = 0, totalG = 0, totalB = 0, totalA = 0;
-    let opaqueCount = 0;
-
-    samples.forEach(sample => {
-      if (sample.a > 200) { // Only count opaque pixels
-        totalR += sample.r;
-        totalG += sample.g;
-        totalB += sample.b;
-        totalA += sample.a;
-        opaqueCount++;
-      }
-    });
-
-    if (opaqueCount === 0) {
-      // All transparent - return white as default
-      return { r: 255, g: 255, b: 255, a: 255 };
-    }
-
-    return {
-      r: Math.round(totalR / opaqueCount),
-      g: Math.round(totalG / opaqueCount),
-      b: Math.round(totalB / opaqueCount),
-      a: Math.round(totalA / opaqueCount)
-    };
-  }
-
-  // Helper: Calculate relative luminance (perceived brightness)
-  function calculateLuminance(r, g, b) {
-    // Convert RGB to relative luminance (0-1 scale)
-    // Formula from WCAG 2.0
-    const rsRGB = r / 255;
-    const gsRGB = g / 255;
-    const bsRGB = b / 255;
-
-    const rLinear = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
-    const gLinear = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
-    const bLinear = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
-
-    return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
-  }
-
-  // Helper: Generate branded card with logo (for known brands)
-  async function generateBrandedCard(logoDataUrl, domain, brandName) {
-    try {
-      debugLog(`[INFO] Generating branded logo showcase for: ${brandName} (${domain})`);
-
-      // Create canvas (standard OG image size)
-      const canvas = document.createElement('canvas');
-      const width = 1200;
-      const height = 630;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      // Load logo first to analyze colors
-      const logo = new Image();
-      logo.crossOrigin = 'anonymous'; // Enable CORS for pixel sampling
-
-      await new Promise((resolve, reject) => {
-        logo.onload = () => {
-          // Sample edge pixels to detect background color
-          const bgColor = sampleEdgePixels(logo);
-          const bgColorRgba = `rgba(${bgColor.r}, ${bgColor.g}, ${bgColor.b}, ${bgColor.a / 255})`;
-
-          debugLog(`[INFO] Detected background color: ${bgColorRgba}`);
-
-          // Calculate luminance to determine border color
-          const luminance = calculateLuminance(bgColor.r, bgColor.g, bgColor.b);
-          const isLightBackground = luminance > 0.5;
-          const borderColor = isLightBackground ? '#333333' : '#FFFFFF';
-
-          debugLog(`[INFO] Luminance: ${luminance.toFixed(2)}, using ${isLightBackground ? 'dark' : 'light'} borders`);
-
-          // Fill background with detected color
-          ctx.fillStyle = bgColorRgba;
-          ctx.fillRect(0, 0, width, height);
-
-          // Draw thin borders on top and bottom with calculated contrast color
-          ctx.strokeStyle = borderColor;
-          ctx.lineWidth = 3;
-          // Top border
-          ctx.beginPath();
-          ctx.moveTo(0, 1.5);
-          ctx.lineTo(width, 1.5);
-          ctx.stroke();
-          // Bottom border
-          ctx.beginPath();
-          ctx.moveTo(0, height - 1.5);
-          ctx.lineTo(width, height - 1.5);
-          ctx.stroke();
-
-          // Logo showcase scaling - make it BIG (90% of canvas)
-          const logoOriginalWidth = logo.width;
-          const logoOriginalHeight = logo.height;
-          const logoAspectRatio = logoOriginalWidth / logoOriginalHeight;
-
-          // Max logo area - 90% of canvas with padding
-          const maxLogoWidth = width * 0.9;
-          const maxLogoHeight = height * 0.9;
-
-          let logoDrawWidth, logoDrawHeight;
-
-          // Calculate scaled dimensions maintaining aspect ratio
-          if (logoAspectRatio > maxLogoWidth / maxLogoHeight) {
-            // Logo is wider - constrain by width
-            logoDrawWidth = Math.min(logoOriginalWidth, maxLogoWidth);
-            logoDrawHeight = logoDrawWidth / logoAspectRatio;
-          } else {
-            // Logo is taller - constrain by height
-            logoDrawHeight = Math.min(logoOriginalHeight, maxLogoHeight);
-            logoDrawWidth = logoDrawHeight * logoAspectRatio;
-          }
-
-          // Center logo both horizontally AND vertically
-          const logoX = (width - logoDrawWidth) / 2;
-          const logoY = (height - logoDrawHeight) / 2;
-
-          // Draw the logo
-          ctx.drawImage(logo, logoX, logoY, logoDrawWidth, logoDrawHeight);
-
-          debugLog(`[OK] Branded logo showcase created (${Math.round(logoDrawWidth)}x${Math.round(logoDrawHeight)}, BG: ${bgColorRgba}, Borders: ${borderColor})`);
-          resolve();
-        };
-
-        logo.onerror = () => {
-          debugLog(`[FAIL] Could not load brand logo`);
-          resolve(); // Continue even if logo fails to load
-        };
-
-        logo.src = logoDataUrl;
-      });
-
-      // Convert canvas to blob
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            debugLog(`[OK] Branded logo showcase generated (${width}x${height})`);
-            resolve(blob);
-          } else {
-            debugLog(`[FAIL] Could not convert canvas to blob`);
-            resolve(null);
-          }
-        }, 'image/png');
-      });
-
-    } catch (err) {
-      debugLog(`[ERROR] Branded card generation failed: ${err.message}`);
-      return null;
-    }
-  }
-
-  // Helper: Validate an image URL (dimensions, aspect ratio, etc.)
-  async function validateImage(src) {
-    debugLog(`[INFO] Validating image: ${src.split('/').pop()}`);
-
-    const dims = await getImageDimensions(src);
-    if (!dims) {
-      debugLog(`  - Failed to load or get dimensions`);
-      return null;
-    }
-
-    const { width, height } = dims;
-    const aspectRatio = width / height;
-    const area = width * height;
-
-    debugLog(`  > Dimensions: ${width}x${height}, aspect: ${aspectRatio.toFixed(2)}, area: ${area}`);
-
-    // Check minimum dimensions
-    if (width < MIN_IMAGE_WIDTH || height < MIN_IMAGE_HEIGHT) {
-      debugLog(`  - Too small (min ${MIN_IMAGE_WIDTH}x${MIN_IMAGE_HEIGHT})`);
-      return null;
-    }
-
-    // Check aspect ratio
-    if (aspectRatio > MAX_ASPECT_RATIO || aspectRatio < (1 / MAX_ASPECT_RATIO)) {
-      debugLog(`  - Aspect ratio out of range`);
-      return null;
-    }
-
-    debugLog(`  + VALID!`);
-    return { src, width, height, area, aspectRatio };
-  }
-
-  // Helper: Score an image candidate based on multiple factors
-  function scoreImage(candidate, allCandidates = []) {
-    const { src, width, height, area, aspectRatio, format, semanticLocation, source } = candidate;
-
-    // Base score from area (normalized, max ~1000 points for 2MP image)
-    const areaScore = Math.min(area / 2000, 1000);
-
-    // Aspect ratio score (prefer landscape ~1.91:1, penalize extreme ratios)
-    const aspectDiff = Math.abs(aspectRatio - IDEAL_ASPECT_RATIO);
-    const aspectScore = Math.max(0, 1000 - (aspectDiff * 500));
-
-    // Format score (SVG > PNG > JPG)
-    let formatScore = 0;
-    if (format === 'svg') formatScore = 2000;
-    else if (format === 'png') formatScore = 1000;
-    else if (format === 'jpg' || format === 'jpeg') formatScore = 500;
-
-    // Semantic location score (HEAVILY boosted to favor editorial content)
-    let locationScore = 0;
-    if (semanticLocation === 'article' || semanticLocation === 'main') {
-      locationScore = 3000; // Triple boost for main content areas
-      debugLog(`    + Location boost: In main content area (${semanticLocation})`);
-    } else if (semanticLocation === 'content') {
-      locationScore = 2000;
-      debugLog(`    + Location boost: In content area`);
-    }
-
-    // Source bonus (REDUCED - domain match often favors branding over content)
-    let sourceScore = 0;
-    if (source === 'Domain Match') sourceScore = 200; // Reduced from 500
-    else if (source === 'OG') sourceScore = 0; // No special bonus for OG
-
-    // Filename-based semantic penalties (ONLY for page scan images, not OG images)
-    let semanticPenalty = 0;
-    if (src && source !== 'OG') {
-      const srcLower = src.toLowerCase();
-      const filename = srcLower.split('/').pop().split('?')[0]; // Get filename without query params
-      const fullPath = srcLower; // Also check full path
-
-      // Heavy penalties for obvious non-editorial images
-      if (filename.match(/icon|newsletter|subscribe|author|avatar|profile|logo|-rev\b|albumart|album-art|thumblarge/i)) {
-        semanticPenalty = -2000;
-        debugLog(`    - Semantic penalty: Non-editorial image detected (${filename.substring(0, 30)}...)`);
-      }
-      // Medium penalty for UI/navigation elements
-      else if (filename.match(/button|badge|widget|ad-|banner|thumb|square\d+/i)) {
-        semanticPenalty = -1000;
-        debugLog(`    - Semantic penalty: UI element detected (${filename.substring(0, 30)}...)`);
-      }
-      // Check path for section branding directories
-      else if (fullPath.match(/\/newsletters\/|\/sections\/|\/podcasts?\/|\/shows?\/|\/series\//i)) {
-        semanticPenalty = -1500;
-        debugLog(`    - Semantic penalty: Section branding path detected`);
-      }
-    }
-
-    // Prominence bonuses (context-aware scoring)
-    let prominenceScore = 0;
-
-    // Few images = higher prominence (minimal site boost)
-    if (allCandidates.length > 0 && allCandidates.length <= 3) {
-      prominenceScore += 1500; // Significant boost for minimal sites
-      debugLog(`    + Prominence boost: Minimal site (${allCandidates.length} images)`);
-    }
-
-    // Largest image boost (REDUCED from 1000 to 300 - size isn't everything)
-    if (allCandidates.length > 0) {
-      const maxArea = Math.max(...allCandidates.map(c => c.area || 0));
-      if (area === maxArea) {
-        prominenceScore += 300;
-        debugLog(`    + Prominence boost: Largest image (${width}x${height})`);
-      }
-    }
-
-    const totalScore = areaScore + aspectScore + formatScore + locationScore + sourceScore + prominenceScore + semanticPenalty;
-
-    debugLog(`    Scoring: area=${areaScore.toFixed(0)}, aspect=${aspectScore.toFixed(0)}, format=${formatScore}, location=${locationScore}, source=${sourceScore}, prominence=${prominenceScore}, semantic=${semanticPenalty} -> TOTAL=${totalScore.toFixed(0)}`);
-
-    return totalScore;
-  }
-
-  // Helper: Select image by domain name matching (returns array of candidates)
-  async function selectImageByDomainMatch(doc, url, minWidth = MIN_IMAGE_WIDTH, minHeight = MIN_IMAGE_HEIGHT) {
-    // Extract domain name from URL
-    const urlObj = new URL(url);
-    let domain = urlObj.hostname
-      .replace(/^www\./, '')           // Remove www.
-      .replace(/\.[a-z]{2,}$/i, '')    // Remove TLD (.com, .co.uk, etc.)
-      .toLowerCase();
-
-    debugLog(`[INFO] Domain matching: extracted domain "${domain}" from ${url}`);
-
-    // Minimum 3 chars to avoid false matches
-    if (domain.length < 3) {
-      debugLog(`[FAIL] Domain too short (${domain.length} chars)`);
-      return [];
-    }
-
-    const allImages = Array.from(doc.querySelectorAll('img[src]'));
-    debugLog(`[INFO] Found ${allImages.length} total images on page`);
-
-    const allMatches = [];
-
-    // Try progressively longer prefixes: start at 3 chars, go up to full domain
-    for (let prefixLen = 3; prefixLen <= domain.length; prefixLen++) {
-      const prefix = domain.substring(0, prefixLen);
-      debugLog(`[INFO] Trying prefix: "${prefix}"`);
-
-      for (const img of allImages) {
-        let src = img.getAttribute('src');
-        if (!src) continue;
-
-        // Convert to absolute URL using helper
-        src = toAbsoluteURL(src, url);
-        if (!src) continue;
-
-        // Skip if already processed
-        if (allMatches.some(m => m.src === src)) continue;
-
-        // Extract filename from URL (last part after /)
-        const filename = src.split('/').pop().toLowerCase();
-
-        // Check if filename contains domain prefix
-        if (filename.includes(prefix)) {
-          debugLog(`  + Match found: ${filename.substring(0, 50)}...`);
-
-          // Validate dimensions
-          const dims = await getImageDimensions(src);
-          if (!dims) {
-            debugLog(`    - Failed to load dimensions`);
-            continue;
-          }
-
-          const { width, height } = dims;
-          const aspectRatio = width / height;
-          debugLog(`    > Dimensions: ${width}x${height}, aspect ratio: ${aspectRatio.toFixed(2)}`);
-
-          // Check minimum dimensions
-          if (width < minWidth || height < minHeight) {
-            debugLog(`    - Too small (min ${minWidth}x${minHeight})`);
-            continue;
-          }
-
-          // Check aspect ratio
-          if (aspectRatio > MAX_ASPECT_RATIO || aspectRatio < (1 / MAX_ASPECT_RATIO)) {
-            debugLog(`    - Aspect ratio out of range`);
-            continue;
-          }
-
-          debugLog(`    + VALID! Area: ${width * height}`);
-
-          // Detect format
-          const format = isSvgUrl(src) ? 'svg' : (src.toLowerCase().endsWith('.png') ? 'png' : 'jpg');
-
-          allMatches.push({
-            src,
-            width,
-            height,
-            area: width * height,
-            aspectRatio,
-            format,
-            source: 'Domain Match',
-            semanticLocation: null // Could enhance this later
-          });
-        }
-      }
-    }
-
-    if (allMatches.length > 0) {
-      debugLog(`[OK] Found ${allMatches.length} domain-matched candidates`);
-    } else {
-      debugLog(`[FAIL] No domain matches found`);
-    }
-
-    return allMatches;
-  }
-
-  // Helper: Select best fallback image using intelligent filtering (returns array of candidates)
-  async function selectBestFallbackImage(doc, baseUrl, minWidth = MIN_IMAGE_WIDTH, minHeight = MIN_IMAGE_HEIGHT) {
-    const EXCLUDE_TAGS = ['NAV', 'HEADER', 'FOOTER', 'ASIDE'];
-
-    const imgElements = Array.from(doc.querySelectorAll('img[src]'));
-    const totalImageCount = imgElements.length;
-    const candidates = [];
-
-    debugLog(`[INFO] Found ${totalImageCount} total images - ${totalImageCount <= 3 ? 'MINIMAL SITE (lenient filtering)' : 'CONTENT-RICH SITE (strict filtering)'}`);
-
-    for (const img of imgElements) {
-      let src = img.getAttribute('src');
-      if (!src) {
-        debugLog(`  - Skipped: no src attribute`);
-        continue;
-      }
-
-      debugLog(`  > Evaluating: ${src.split('/').pop()}`);
-
-      // Handle data URLs with context-aware filtering
-      let isDataURL = false;
-      let dataURLBlob = null;
-
-      if (src.startsWith('data:')) {
-        isDataURL = true;
-
-        // Skip data URLs on content-rich sites (likely tracking pixels/icons)
-        if (totalImageCount > 3) {
-          debugLog(`    - Skipped: data URL (content-rich site, ${totalImageCount} images)`);
-          continue;
-        }
-
-        // Only process PNG/JPEG data URLs
-        if (!src.startsWith('data:image/png') && !src.startsWith('data:image/jpeg')) {
-          debugLog(`    - Skipped: data URL (not PNG/JPEG)`);
-          continue;
-        }
-
-        // Skip if too small (likely a tracking pixel or tiny icon)
-        const estimatedSize = src.length / 1.37; // base64 is ~1.37x original size
-        if (estimatedSize < 1000) { // < 1KB
-          debugLog(`    - Skipped: data URL too small (~${Math.round(estimatedSize)} bytes)`);
-          continue;
-        }
-
-        debugLog(`    + Data URL detected on minimal site (~${(estimatedSize/1024).toFixed(1)}KB, processing...)`);
-
-        // Decode data URL to blob for dimension checking
-        dataURLBlob = await dataURLToBlob(src);
-        if (!dataURLBlob) {
-          debugLog(`    - Skipped: failed to decode data URL`);
-          continue;
-        }
-      } else {
-        // Convert regular URLs to absolute
-        src = toAbsoluteURL(src, baseUrl);
-        if (!src) {
-          debugLog(`    - Skipped: failed URL conversion`);
-          continue;
-        }
-      }
-
-      // Context-aware keyword filtering (filename only, not full path)
-      const filename = src.split('/').pop().split('?')[0].toLowerCase();
-      if (totalImageCount > 3) {
-        // Strict filtering for content-rich sites
-        if (IMAGE_EXCLUDED_KEYWORDS.some(kw => filename.includes(kw))) {
-          debugLog(`    - Skipped: keyword excluded (${filename})`);
-          continue;
-        }
-      } else {
-        debugLog(`    + Lenient mode: allowing all keywords`);
-      }
-      // For minimal sites (≤3 images), allow ALL images including logos
-
-      // Detect semantic location (check parent elements)
-      let inExcludedZone = false;
-      let semanticLocation = null;
-      let parent = img.parentElement;
-      let depth = 0;
-
-      while (parent && depth < 5) {
-        const tagName = parent.tagName;
-
-        // Check for excluded zones
-        if (EXCLUDE_TAGS.includes(tagName)) {
-          inExcludedZone = true;
-          debugLog(`    - Skipped: in excluded tag <${tagName}>`);
-          break;
-        }
-
-        // Check for content zones
-        if (tagName === 'ARTICLE') semanticLocation = 'article';
-        else if (tagName === 'MAIN') semanticLocation = 'main';
-        else if (!semanticLocation) {
-          const parentIdClass = ((parent.id || '') + ' ' + (parent.className || '')).toLowerCase();
-          if (parentIdClass.match(/sidebar|comment|widget|footer|header|nav/)) {
-            inExcludedZone = true;
-            debugLog(`    - Skipped: in excluded zone (id/class: ${parentIdClass.substring(0, 30)}...)`);
-            break;
-          }
-          if (parentIdClass.match(/content|post|entry/)) {
-            semanticLocation = 'content';
-          }
-        }
-
-        parent = parent.parentElement;
-        depth++;
-      }
-
-      if (inExcludedZone) continue;
-
-      // Load image to check dimensions
-      debugLog(`    + Checking dimensions...`);
-      let dims;
-
-      if (isDataURL && dataURLBlob) {
-        // Get dimensions from blob
-        dims = await getImageDimensionsFromBlob(dataURLBlob);
-      } else {
-        // Get dimensions from URL
-        dims = await getImageDimensions(src);
-      }
-
-      if (!dims) {
-        debugLog(`    - Skipped: failed to load image`);
-        continue;
-      }
-
-      const { width, height } = dims;
-      const aspectRatio = width / height;
-      debugLog(`    + Loaded: ${width}x${height}, aspect ratio: ${aspectRatio.toFixed(2)}`);
-
-      // Filter by dimensions
-      if (width < minWidth || height < minHeight) {
-        debugLog(`    - Skipped: too small (min ${minWidth}x${minHeight})`);
-        continue;
-      }
-      if (aspectRatio > MAX_ASPECT_RATIO || aspectRatio < (1 / MAX_ASPECT_RATIO)) {
-        debugLog(`    - Skipped: aspect ratio out of range (${aspectRatio.toFixed(2)} not in ${(1/MAX_ASPECT_RATIO).toFixed(2)}-${MAX_ASPECT_RATIO})`);
-        continue;
-      }
-
-      // Detect format
-      let format;
-      if (isDataURL) {
-        // For data URLs, extract format from MIME type
-        format = src.startsWith('data:image/png') ? 'png' : 'jpg';
-      } else {
-        format = isSvgUrl(src) ? 'svg' : (src.toLowerCase().endsWith('.png') ? 'png' : 'jpg');
-      }
-
-      debugLog(`    + VALID CANDIDATE! Adding to list.`);
-
-      candidates.push({
-        src: isDataURL ? src : src, // Keep original data URL or converted absolute URL
-        width,
-        height,
-        area: width * height,
-        aspectRatio,
-        format,
-        source: 'Page Scan',
-        semanticLocation,
-        isDataURL: isDataURL,
-        dataURLBlob: isDataURL ? dataURLBlob : null
-      });
-
-      // Stop after finding 10 good candidates (performance limit)
-      if (candidates.length >= 10) break;
-    }
-
-    if (candidates.length > 0) {
-      debugLog(`[OK] Found ${candidates.length} page scan candidates`);
-    } else {
-      debugLog(`[FAIL] No valid page images found`);
-    }
-
-    return candidates;
-  }
-
   // Re-render existing card with current settings (no fetch)
   function refreshCardDisplay() {
     if (!lastCardData) return false;
@@ -1486,7 +626,8 @@ document.addEventListener('DOMContentLoaded', () => {
       lastCardData.desc,
       lastCardData.embeddedImageUrl,
       lastCardData.domain,
-      lastCardData.url
+      lastCardData.url,
+      currentSettings
     );
 
     // Re-generate all pre-rendered formats with updated settings
@@ -1495,14 +636,16 @@ document.addEventListener('DOMContentLoaded', () => {
       lastCardData.desc,
       lastCardData.embeddedImageUrl,
       lastCardData.domain,
-      lastCardData.url
+      lastCardData.url,
+      currentSettings
     );
     lastCardData.documentHtml = generateDocumentHTML(
       lastCardData.title,
       lastCardData.desc,
       lastCardData.embeddedImageUrl,
       lastCardData.domain,
-      lastCardData.url
+      lastCardData.url,
+      currentSettings
     );
     lastCardData.chatMarkdown = generateMarkdown(
       lastCardData.title,
@@ -1515,7 +658,8 @@ document.addEventListener('DOMContentLoaded', () => {
       lastCardData.desc,
       'og-card-thumbnail.png',
       lastCardData.domain,
-      lastCardData.url
+      lastCardData.url,
+      currentSettings
     );
 
     preview.innerHTML = generatedHtml;
@@ -1784,10 +928,10 @@ document.addEventListener('DOMContentLoaded', () => {
         url: url,
         timestamp: Date.now(), // Add timestamp for cache indicator
         // Pre-rendered formats (generated once, used by copy buttons)
-        emailHtml: generateEmailHTML(title, desc, embeddedImageUrl, domain, url),
-        documentHtml: generateDocumentHTML(title, desc, embeddedImageUrl, domain, url),
+        emailHtml: generateEmailHTML(title, desc, embeddedImageUrl, domain, url, currentSettings),
+        documentHtml: generateDocumentHTML(title, desc, embeddedImageUrl, domain, url, currentSettings),
         chatMarkdown: generateMarkdown(title, desc, domain, url),
-        htmlCode: generateCardHTML(title, desc, 'og-card-thumbnail.png', domain, url),
+        htmlCode: generateCardHTML(title, desc, 'og-card-thumbnail.png', domain, url, currentSettings),
         // Full-size blob for PNG export (only for generated cards: favicon brand, domain)
         fullSizeBlob: fullSizeBlobDataUrl
       };
@@ -1825,7 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
         desc,
         embeddedImageUrl,
         domain,
-        url
+        url,
+        currentSettings
       );
 
       preview.innerHTML = generatedHtml;
@@ -1864,57 +1009,6 @@ document.addEventListener('DOMContentLoaded', () => {
       generateNewBtn.disabled = false;
       if (generatingSpinner) generatingSpinner.style.display = 'none'; // Hide spinner
     }
-  }
-
-  // Helper: Crop/scale image to thumbnail via Canvas (fixed center crop)
-  async function cropToThumbnail(blob, borderColor = null) {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = THUMB_WIDTH;
-      canvas.height = THUMB_HEIGHT;
-      const ctx = canvas.getContext('2d');
-
-      const img = new Image();
-      img.onload = () => {
-        const sourceWidth = img.naturalWidth;
-        const sourceHeight = img.naturalHeight;
-
-        // Add light gray background for transparent images
-        ctx.fillStyle = '#f5f5f5';
-        ctx.fillRect(0, 0, THUMB_WIDTH, THUMB_HEIGHT);
-
-        // Scale to cover canvas (max of width/height ratios)
-        const scale = Math.max(THUMB_WIDTH / sourceWidth, THUMB_HEIGHT / sourceHeight);
-        const cropWidth = THUMB_WIDTH / scale;
-        const cropHeight = THUMB_HEIGHT / scale;
-
-        // Center crop coordinates in source image
-        const cropX = (sourceWidth - cropWidth) / 2;
-        const cropY = (sourceHeight - cropHeight) / 2;
-
-        // Draw cropped source to full canvas
-        ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, THUMB_WIDTH, THUMB_HEIGHT);
-
-        // Add border if borderColor provided (for favicon brand cards)
-        if (borderColor) {
-          addBorderToThumbnail(ctx, THUMB_WIDTH, THUMB_HEIGHT, borderColor);
-        }
-
-        // Output base64 as PNG to preserve transparency
-        canvas.toBlob((croppedBlob) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(croppedBlob);
-          reader.onloadend = () => resolve(reader.result);
-        }, 'image/png', IMAGE_QUALITY);
-      };
-      img.onerror = () => resolve(createPlaceholder());
-      img.src = URL.createObjectURL(blob);
-    });
-  }
-
-  // Helper: Create placeholder SVG (scaled) with 5th.Place branding
-  function createPlaceholder() {
-    return `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjExMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjExMiIgZmlsbD0iI2Y1ZjVmNyIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJPcGVuIFNhbnMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjV0aC5QbGFjZTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjY4IiBmb250LWZhbWlseT0iT3BlbiBTYW5zLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYmJiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JdCBzdGFydHMgd2l0aCBtZS4uLjwvdGV4dD4KPC9zdmc+Cg==`;
   }
 
   copyEmailBtn.addEventListener('click', async () => {
@@ -2016,7 +1110,8 @@ document.addEventListener('DOMContentLoaded', () => {
           lastCardData.title,
           lastCardData.desc,
           lastCardData.embeddedImageUrl,
-          lastCardData.domain
+          lastCardData.domain,
+          currentSettings
         );
       }
 
@@ -2169,13 +1264,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function extractPlainText(html) {
-    // Simple plain text extractor for fallback
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    return tempDiv.textContent || tempDiv.innerText || '';
-  }
-
   async function copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
@@ -2194,754 +1282,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  // Helper: Convert hex color to RGB object
-  function hexToRGB(hexColor) {
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-    return { r, g, b };
-  }
-
-  // Helper: Calculate relative luminance of a hex color
-  function getLuminance(hexColor) {
-    // Extract RGB components from hex color
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-
-    // Calculate relative luminance (perceived brightness) - WCAG formula
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance;
-  }
-
-  // Helper: Calculate contrast ratio between two colors
-  function calculateContrast(color1, color2) {
-    const lum1 = getLuminance(color1);
-    const lum2 = getLuminance(color2);
-
-    // WCAG contrast ratio formula
-    const lighter = Math.max(lum1, lum2);
-    const darker = Math.min(lum1, lum2);
-    return (lighter + 0.05) / (darker + 0.05);
-  }
-
-  // Helper: Get border color based on background and logo colors
-  function getBorderColor(bgColor, logoColor) {
-    // Check if colors are too similar (nearly identical)
-    const bgRGB = hexToRGB(bgColor);
-    const logoRGB = hexToRGB(logoColor);
-
-    // Calculate total RGB difference
-    const rDiff = Math.abs(bgRGB.r - logoRGB.r);
-    const gDiff = Math.abs(bgRGB.g - logoRGB.g);
-    const bDiff = Math.abs(bgRGB.b - logoRGB.b);
-    const totalDiff = rDiff + gDiff + bDiff;
-
-    // If colors are very similar (difference < 50 out of 765 max)
-    if (totalDiff < 50) {
-      // Edge case: use subtle grey variation
-      const bgLuminance = getLuminance(bgColor);
-
-      if (bgLuminance > 0.5) {
-        // Light background → slightly darker grey
-        return '#cccccc';
-      } else {
-        // Dark background → slightly lighter grey
-        return '#444444';
-      }
-    }
-
-    // Normal case: use logo color as border
-    return logoColor;
-  }
-
-  // Helper: Add border to full-size card (1200x630) with mat effect
-  function addBorderToFullSizeCard(ctx, width, height, borderColor) {
-    const inset = 18; // Inset from edge for brand color "mat" effect
-    const borderWidth = 4; // Substantial but not heavy
-
-    ctx.fillStyle = borderColor;
-
-    // Draw 4 solid rectangles for each edge (no anti-aliasing artifacts)
-    // Top border
-    ctx.fillRect(inset, inset, width - (inset * 2), borderWidth);
-
-    // Bottom border
-    ctx.fillRect(inset, height - inset - borderWidth, width - (inset * 2), borderWidth);
-
-    // Left border
-    ctx.fillRect(inset, inset, borderWidth, height - (inset * 2));
-
-    // Right border
-    ctx.fillRect(width - inset - borderWidth, inset, borderWidth, height - (inset * 2));
-  }
-
-  // Helper: Add border to thumbnail (200x112) with mat effect
-  function addBorderToThumbnail(ctx, width, height, borderColor) {
-    const inset = 3; // Proportional inset for thumbnail
-    const borderWidth = 1; // Crisp on small display
-
-    ctx.fillStyle = borderColor;
-
-    // Draw 4 solid rectangles for each edge (no anti-aliasing artifacts)
-    // Top border
-    ctx.fillRect(inset, inset, width - (inset * 2), borderWidth);
-
-    // Bottom border
-    ctx.fillRect(inset, height - inset - borderWidth, width - (inset * 2), borderWidth);
-
-    // Left border
-    ctx.fillRect(inset, inset, borderWidth, height - (inset * 2));
-
-    // Right border
-    ctx.fillRect(width - inset - borderWidth, inset, borderWidth, height - (inset * 2));
-  }
-
-  // Helper: Add border to a blob (used for full-size favicon brand cards)
-  async function addBorderToBlob(blob, width, height, borderColor, inset, borderWidth) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        // Create canvas at target size
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-
-        // Draw the source image
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Add border
-        ctx.fillStyle = borderColor;
-
-        // Top border
-        ctx.fillRect(inset, inset, width - (inset * 2), borderWidth);
-
-        // Bottom border
-        ctx.fillRect(inset, height - inset - borderWidth, width - (inset * 2), borderWidth);
-
-        // Left border
-        ctx.fillRect(inset, inset, borderWidth, height - (inset * 2));
-
-        // Right border
-        ctx.fillRect(width - inset - borderWidth, inset, borderWidth, height - (inset * 2));
-
-        // Convert to blob
-        canvas.toBlob((newBlob) => {
-          resolve(newBlob);
-        }, 'image/png', 0.9);
-      };
-      img.onerror = () => resolve(null);
-      img.src = URL.createObjectURL(blob);
-    });
-  }
-
-  // Fetch favicon using Google's favicon API
-  async function fetchFavicon(domain) {
-    try {
-      const faviconUrl = `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=256`;
-      debugLog(`Fetching favicon for ${domain}`);
-
-      const response = await fetch(faviconUrl);
-      if (!response.ok) {
-        throw new Error(`Favicon fetch failed: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      debugLog(`Favicon fetch error: ${error.message}`);
-      return null;
-    }
-  }
-
-  // Analyze favicon to extract background color (from edges) and logo color (from center)
-  async function analyzeLogoColors(faviconDataUrl) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      img.onload = () => {
-        try {
-          // Create canvas to analyze the image
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = img.width;
-          canvas.height = img.height;
-
-          ctx.drawImage(img, 0, 0);
-
-          const fullImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const pixels = fullImageData.data;
-
-          const toHex = (n) => {
-            const hex = n.toString(16);
-            return hex.length === 1 ? '0' + hex : hex;
-          };
-
-          // ===== 1. Edge sampling with histogram for background color =====
-          // Sample 8 edge positions (corners + midpoints) to avoid logo anti-aliasing
-          // while still handling gradients with histogram
-          const bgColorFrequency = {};
-          const samplePositions = [
-            [0, 0], [canvas.width - 1, 0], // top corners
-            [0, canvas.height - 1], [canvas.width - 1, canvas.height - 1], // bottom corners
-            [Math.floor(canvas.width / 2), 0], // top center
-            [Math.floor(canvas.width / 2), canvas.height - 1], // bottom center
-            [0, Math.floor(canvas.height / 2)], // left center
-            [canvas.width - 1, Math.floor(canvas.height / 2)] // right center
-          ];
-
-          samplePositions.forEach(([x, y]) => {
-            const index = (y * canvas.width + x) * 4;
-            const r = pixels[index];
-            const g = pixels[index + 1];
-            const b = pixels[index + 2];
-            const a = pixels[index + 3];
-
-            // Only count opaque pixels
-            if (a > 200) {
-              // Use exact color values for background (no quantization)
-              const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-              bgColorFrequency[hexColor] = (bgColorFrequency[hexColor] || 0) + 1;
-            }
-          });
-
-          // Find most dominant background color from histogram
-          let bgColor = '#ffffff'; // Default if all transparent
-          const bgFrequencies = Object.values(bgColorFrequency);
-
-          if (bgFrequencies.length > 0) {
-            const maxFrequency = Math.max(...bgFrequencies);
-            const dominantBgColors = Object.keys(bgColorFrequency).filter(
-              color => bgColorFrequency[color] === maxFrequency
-            );
-
-            // If multiple colors tie, pick the first one (most stable)
-            bgColor = dominantBgColors[0];
-
-            debugLog(`Background sampling: ${bgFrequencies.length} unique colors found, dominant: ${bgColor} (${maxFrequency}/8 samples)`);
-          }
-
-          // ===== 2. Sample CENTER for logo color =====
-          const centerX = Math.floor(canvas.width * 0.25);
-          const centerY = Math.floor(canvas.height * 0.25);
-          const centerWidth = Math.floor(canvas.width * 0.5);
-          const centerHeight = Math.floor(canvas.height * 0.5);
-
-          const centerImageData = ctx.getImageData(centerX, centerY, centerWidth, centerHeight);
-          const centerPixels = centerImageData.data;
-
-          // Count color frequencies (with color quantization to group similar colors)
-          const colorFrequency = {};
-
-          // Get background RGB for exclusion check
-          const bgRGB = hexToRGB(bgColor);
-
-          // Sample every 4th pixel to reduce processing (still plenty of samples)
-          for (let i = 0; i < centerPixels.length; i += 16) { // 4 pixels * 4 channels = 16
-            const r = centerPixels[i];
-            const g = centerPixels[i + 1];
-            const b = centerPixels[i + 2];
-            const a = centerPixels[i + 3];
-
-            // Only count opaque pixels (logo, not background)
-            if (a > 200) {
-              // Skip pixels that are too similar to background color
-              const rDiff = Math.abs(bgRGB.r - r);
-              const gDiff = Math.abs(bgRGB.g - g);
-              const bDiff = Math.abs(bgRGB.b - b);
-              const totalDiff = rDiff + gDiff + bDiff;
-
-              if (totalDiff < 50) {
-                continue; // Skip background pixels, only count logo pixels
-              }
-
-              // Quantize colors to reduce noise (round to nearest 32, clamped to 0-255)
-              const qR = Math.min(255, Math.round(r / 32) * 32);
-              const qG = Math.min(255, Math.round(g / 32) * 32);
-              const qB = Math.min(255, Math.round(b / 32) * 32);
-
-              const hexColor = `#${toHex(qR)}${toHex(qG)}${toHex(qB)}`;
-              colorFrequency[hexColor] = (colorFrequency[hexColor] || 0) + 1;
-            }
-          }
-
-          // Find most common logo color(s)
-          const frequencies = Object.values(colorFrequency);
-          let logoColor = '#ffffff'; // Default if no opaque pixels
-
-          if (frequencies.length > 0) {
-            const maxFrequency = Math.max(...frequencies);
-
-            // Get all colors that have the maximum frequency (handles ties)
-            const dominantColors = Object.keys(colorFrequency).filter(
-              color => colorFrequency[color] === maxFrequency
-            );
-
-            // Randomly pick one if multiple colors tie
-            logoColor = dominantColors[Math.floor(Math.random() * dominantColors.length)];
-
-            debugLog(`Background: ${bgColor}, Logo: ${logoColor} (${dominantColors.length} colors tied at ${maxFrequency} samples)`);
-          } else {
-            debugLog(`Background: ${bgColor}, Logo: ${logoColor} (no opaque center pixels)`);
-          }
-
-          resolve({ bgColor, logoColor });
-
-        } catch (error) {
-          debugLog(`Color analysis error: ${error.message}`);
-          resolve({ bgColor: '#ffffff', logoColor: '#ffffff' }); // Default on error
-        }
-      };
-
-      img.onerror = () => {
-        debugLog('Failed to load favicon for color analysis');
-        resolve({ bgColor: '#ffffff', logoColor: '#ffffff' });
-      };
-
-      img.src = faviconDataUrl;
-    });
-  }
-
-  // Generate branded card image using favicon (returns blob like generateDomainCard)
-  async function generateFaviconBrandCard(domain, linkUrl) {
-    debugLog(`Generating favicon brand card for ${domain}`);
-
-    try {
-      // Fetch favicon
-      const faviconDataUrl = await fetchFavicon(domain);
-      if (!faviconDataUrl) {
-        debugLog('Favicon fetch failed, cannot generate brand card');
-        return null;
-      }
-
-      // Analyze logo colors to get background and logo colors
-      const { bgColor, logoColor } = await analyzeLogoColors(faviconDataUrl);
-
-      // Calculate border color based on background and logo
-      const borderColor = getBorderColor(bgColor, logoColor);
-      debugLog(`Background: ${bgColor}, Logo: ${logoColor}, Border: ${borderColor}`);
-
-      // Create canvas (standard OG image size)
-      const canvas = document.createElement('canvas');
-      const width = 1200;
-      const height = 630;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      // Fill entire canvas with brand color
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, width, height);
-
-      // Load and draw favicon centered
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          // Smart proportional scaling - logo should fill ~65% of canvas
-          const targetWidthRatio = 0.65;
-          const targetHeightRatio = 0.65;
-
-          const maxDrawWidth = width * targetWidthRatio;   // ~780px
-          const maxDrawHeight = height * targetHeightRatio; // ~410px
-
-          // Scale to fit within bounds while maintaining aspect ratio
-          const scale = Math.min(maxDrawWidth / img.width, maxDrawHeight / img.height);
-          const drawWidth = img.width * scale;
-          const drawHeight = img.height * scale;
-
-          // Center the logo
-          const x = (width - drawWidth) / 2;
-          const y = (height - drawHeight) / 2;
-
-          ctx.drawImage(img, x, y, drawWidth, drawHeight);
-          resolve();
-        };
-        img.onerror = () => {
-          debugLog('Failed to load favicon for drawing');
-          reject(new Error('Favicon load failed'));
-        };
-        img.src = faviconDataUrl;
-      });
-
-      // Convert canvas to blob (borderless) and return with borderColor
-      // Borders will be added separately for full-size and thumbnail
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            debugLog('Favicon brand card blob generated successfully');
-            resolve({ blob, borderColor });
-          } else {
-            debugLog('Failed to convert canvas to blob');
-            resolve(null);
-          }
-        }, 'image/png', 0.9);
-      });
-
-    } catch (error) {
-      debugLog(`Error generating favicon brand card: ${error.message}`);
-      return null;
-    }
-  }
-
-  // Generate card HTML for preview (uses CSS classes, rendered with styles.css)
-  function generateCardHTML(title, description, imageUrl, domain, linkUrl) {
-    // Fallbacks if OG missing
-    title = title || 'Untitled Page';
-    description = description || 'Check out this link for more details.';
-    domain = domain || new URL(linkUrl).hostname.replace('www.', '') || 'unknown.com';
-
-    // Sanitize user-controlled content to prevent XSS
-    const safeTitle = escapeHTML(title);
-    const safeDescription = escapeHTML(description).replace(/\n/g, '<br>');
-    const safeDomain = escapeHTML(domain).toUpperCase();
-    const safeLinkUrl = escapeHTML(linkUrl);
-    const safeImageUrl = escapeHTML(imageUrl);
-
-    // Apply user settings
-    const titleSize = currentSettings.titleFontSize;
-    const descSize = currentSettings.descFontSize;
-    const titleFont = currentSettings.titleFont;
-    const descFont = currentSettings.descFont;
-    const titleColor = currentSettings.titleColor;
-    const descColor = currentSettings.descColor;
-    const domainColor = currentSettings.domainColor;
-    const borderColor = currentSettings.borderColor;
-    const borderStyle = currentSettings.borderStyle;
-    const borderWeight = currentSettings.borderWeight;
-    const borderRadius = currentSettings.borderRadius;
-
-    return `
-<table border="0" cellpadding="0" cellspacing="0" class="og-card-outer">
-  <tr>
-    <td class="og-card-border" style="border:${borderWeight} ${borderStyle} ${borderColor};border-radius:${borderRadius}">
-      <table border="0" cellpadding="0" cellspacing="0" class="og-card-inner">
-        <tr>
-          <td class="og-card-content-row">
-            <table border="0" cellpadding="0" cellspacing="0" class="og-card-content-table">
-              <tr>
-                <th rowspan="2" class="og-card-image-cell">
-                  <a href="${safeLinkUrl}" target="_blank"><img src="${safeImageUrl}" width="120" class="og-card-image" alt="${safeTitle}"></a>
-                </th>
-                <th class="og-card-text-cell" style="color:${titleColor}">
-                  <p class="og-card-title" style="font-family:${titleFont};font-size:${titleSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${titleColor}">${safeTitle}</a></p>
-                  <p class="og-card-description" style="font-family:${descFont};font-size:${descSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${descColor}">${safeDescription}</a></p>
-                </th>
-              </tr>
-              <tr>
-                <td class="og-card-domain-cell" style="font-family:${descFont}">
-                  <a class="og-card-domain" style="color:${domainColor}" href="${safeLinkUrl}" target="_blank">${safeDomain}</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td class="og-card-footer">Powered by 5th.Place | It starts with me...</td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  // Generate email HTML (fully inlined styles for email clients)
-  function generateEmailHTML(title, description, imageUrl, domain, linkUrl) {
-    // Fallbacks if OG missing
-    title = title || 'Untitled Page';
-    description = description || 'Check out this link for more details.';
-    domain = domain || new URL(linkUrl).hostname.replace('www.', '') || 'unknown.com';
-
-    // Sanitize user-controlled content to prevent XSS
-    const safeTitle = escapeHTML(title);
-    const safeDescription = escapeHTML(description).replace(/\n/g, '<br>');
-    const safeDomain = escapeHTML(domain).toUpperCase();
-    const safeLinkUrl = escapeHTML(linkUrl);
-    const safeImageUrl = escapeHTML(imageUrl);
-
-    // Apply user settings
-    const titleSize = currentSettings.titleFontSize;
-    const descSize = currentSettings.descFontSize;
-    const titleFont = currentSettings.titleFont;
-    const descFont = currentSettings.descFont;
-    const titleColor = currentSettings.titleColor;
-    const descColor = currentSettings.descColor;
-    const domainColor = currentSettings.domainColor;
-    const borderColor = currentSettings.borderColor;
-    const borderStyle = currentSettings.borderStyle;
-    const borderWeight = currentSettings.borderWeight;
-    const borderRadius = currentSettings.borderRadius;
-
-    return `
-<table border="0" cellpadding="0" cellspacing="0" style="width:580px">
-  <tr>
-    <td style="border:${borderWeight} ${borderStyle} ${borderColor};border-radius:${borderRadius};padding:8px">
-      <table border="0" cellpadding="0" cellspacing="0" style="width:100%">
-        <tr>
-          <td style="padding-bottom:8px">
-            <table border="0" cellpadding="0" cellspacing="0" style="width:100%">
-              <tr>
-                <th rowspan="2" style="width:134px;vertical-align:middle;text-align:left;font-weight:400">
-                  <a href="${safeLinkUrl}" target="_blank"><img src="${safeImageUrl}" width="120" style="width:120px;max-width:100%;display:block" alt="${safeTitle}"></a>
-                </th>
-                <th style="font-weight:400;text-align:left;vertical-align:top">
-                  <p style="font-family:${titleFont};margin:0 0 2px 0;line-height:22px;font-weight:600;font-size:${titleSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${titleColor};text-decoration:none">${safeTitle}</a></p>
-                  <p style="font-family:${descFont};margin:0 0 2px 0;line-height:17px;font-size:${descSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${descColor};text-decoration:none">${safeDescription}</a></p>
-                </th>
-              </tr>
-              <tr>
-                <td style="vertical-align:bottom;font-family:${descFont};line-height:11px;text-align:left;padding-top:8px">
-                  <a style="font-size:11px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;font-weight:normal;color:${domainColor}" href="${safeLinkUrl}" target="_blank">${safeDomain}</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding-top:6px;border-top:1px solid #dde;font-family:${descFont};font-size:11px;color:#666">Powered by 5th.Place | It starts with me...</td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  // Generate document HTML (simple table for Google Docs/Word compatibility)
-  function generateDocumentHTML(title, description, imageUrl, domain, linkUrl) {
-    // Fallbacks if OG missing
-    title = title || 'Untitled Page';
-    description = description || 'Check out this link for more details.';
-    domain = domain || new URL(linkUrl).hostname.replace('www.', '') || 'unknown.com';
-
-    // Sanitize user-controlled content to prevent XSS
-    const safeTitle = escapeHTML(title);
-    const safeDescription = escapeHTML(description).replace(/\n/g, '<br>');
-    const safeDomain = escapeHTML(domain).toUpperCase();
-    const safeLinkUrl = escapeHTML(linkUrl);
-    const safeImageUrl = escapeHTML(imageUrl);
-
-    // Apply user settings
-    const titleSize = currentSettings.titleFontSize;
-    const descSize = currentSettings.descFontSize;
-    const titleFont = currentSettings.titleFont;
-    const descFont = currentSettings.descFont;
-    const titleColor = currentSettings.titleColor;
-    const descColor = currentSettings.descColor;
-    const domainColor = currentSettings.domainColor;
-    const borderColor = currentSettings.borderColor;
-    const borderStyle = currentSettings.borderStyle;
-    const borderWeight = currentSettings.borderWeight;
-    const borderRadius = currentSettings.borderRadius;
-
-    return `
-<table border="0" cellpadding="0" cellspacing="0" style="width:580px;border:${borderWeight} ${borderStyle} ${borderColor};border-radius:${borderRadius};border-collapse:collapse">
-  <tr>
-    <td style="width:134px;padding:8px;vertical-align:middle;border:none">
-      <a href="${safeLinkUrl}" target="_blank"><img src="${safeImageUrl}" width="120" style="width:120px;display:block" alt="${safeTitle}"></a>
-    </td>
-    <td style="padding:8px;vertical-align:top;border:none">
-      <div>
-        <p style="font-family:${titleFont};margin:0 0 2px 0;line-height:1.2;font-weight:600;font-size:${titleSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${titleColor};text-decoration:none">${safeTitle}</a></p>
-        <p style="font-family:${descFont};margin:0;line-height:17px;font-size:${descSize}"><a href="${safeLinkUrl}" target="_blank" style="color:${descColor};text-decoration:none">${safeDescription}</a></p>
-      </div>
-      <div style="font-family:${descFont};line-height:11px;padding-top:8px">
-        <a style="font-size:11px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;font-weight:normal;color:${domainColor}" href="${safeLinkUrl}" target="_blank">${safeDomain}</a>
-      </div>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2" style="padding-top:6px;border-top:1px solid #dde;font-family:${descFont};font-size:11px;color:#666;border:none">Powered by 5th.Place | It starts with me...</td>
-  </tr>
-</table>`;
-  }
-
-  function generateMarkdown(title, description, domain, linkUrl) {
-    // Fallbacks if missing
-    title = title || 'Untitled Page';
-    description = description || 'Check out this link for more details.';
-    domain = domain || new URL(linkUrl).hostname.replace('www.', '') || 'unknown.com';
-
-    // Clean up description (convert <br> back to newlines if present)
-    description = description.replace(/<br\s*\/?>/gi, '\n');
-
-    // WhatsApp-compatible format:
-    // - Single asterisks for bold (*text*)
-    // - Underscores for italic (_text_)
-    // - Link emoji + full URL (no domain repetition)
-    // Using Unicode escape for emoji to avoid encoding issues
-    const linkEmoji = '\u{1F517}'; // 🔗 link emoji
-    const markdown = `*${title}*\n_${description}_\n${linkEmoji} ${linkUrl}`;
-
-    return markdown;
-  }
-
-  // Generate card as PNG image using canvas
-  async function generateCardImage(title, description, imageDataURL, domain) {
-    // Fallbacks if missing
-    title = title || 'Untitled Page';
-    description = description || 'Check out this link for more details.';
-    domain = domain || 'unknown.com';
-
-    // Apply user settings
-    const titleSize = parseInt(currentSettings.titleFontSize);
-    const descSize = parseInt(currentSettings.descFontSize);
-    const titleColor = currentSettings.titleColor;
-    const descColor = currentSettings.descColor;
-    const domainColor = currentSettings.domainColor;
-    const borderColor = currentSettings.borderColor;
-    const borderWeight = parseInt(currentSettings.borderWeight);
-    const borderRadius = parseInt(currentSettings.borderRadius);
-
-    // Card dimensions (matching HTML version)
-    const cardWidth = 580;
-    const imageWidth = 120;
-    const padding = 8;
-    const footerHeight = 30;
-
-    // Calculate dynamic heights
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // Set canvas size (will adjust height based on content)
-    canvas.width = cardWidth;
-    let currentY = padding + borderWeight;
-
-    // Load image
-    const img = new Image();
-    img.src = imageDataURL;
-    await new Promise((resolve) => { img.onload = resolve; });
-
-    const imageHeight = (img.height / img.width) * imageWidth;
-    const textAreaWidth = cardWidth - imageWidth - (padding * 4) - (borderWeight * 2);
-
-    // Measure text heights
-    ctx.font = `600 ${titleSize}px 'Outfit', sans-serif`;
-    const titleLines = wrapText(ctx, title, textAreaWidth);
-    const titleHeight = titleLines.length * (titleSize * 1.2);
-
-    ctx.font = `400 ${descSize}px 'Open Sans', sans-serif`;
-    const descLines = wrapText(ctx, description, textAreaWidth);
-    const descHeight = descLines.length * (descSize * 1.4);
-
-    const domainHeight = 15; // 11px font + small buffer
-    const spacingBetweenElements = 8; // Space between desc and domain
-    const textBlockHeight = titleHeight + 2 + descHeight + spacingBetweenElements + domainHeight;
-
-    // Calculate image position - center vertically relative to text block
-    const imageCenterY = currentY + (textBlockHeight / 2) - (imageHeight / 2);
-
-    // Calculate positions (don't draw yet)
-    let textX = padding + borderWeight + imageWidth + padding;
-    let titleY = currentY;
-    let descY = titleY + titleHeight + 2;
-    let domainY = descY + descHeight + spacingBetweenElements;
-
-    // Calculate footer position (6px padding-top after domain, like HTML)
-    const footerY = domainY + 15 + 6; // domain height + padding
-
-    // NOW calculate final canvas height based on actual footer position
-    // Footer text at footerY + 12, text is 11px, need 8px bottom padding + borderWeight
-    canvas.height = footerY + 12 + 11 + 8 + borderWeight;
-
-    // Fill background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw border
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = borderWeight;
-    if (borderRadius > 0) {
-      drawRoundedRect(ctx, borderWeight/2, borderWeight/2, cardWidth - borderWeight, canvas.height - borderWeight, borderRadius);
-      ctx.stroke();
-    } else {
-      ctx.strokeRect(borderWeight/2, borderWeight/2, cardWidth - borderWeight, canvas.height - borderWeight);
-    }
-
-    // Draw image (centered vertically)
-    ctx.drawImage(img, padding + borderWeight, imageCenterY, imageWidth, imageHeight);
-
-    // Draw title
-    ctx.fillStyle = titleColor;
-    ctx.font = `600 ${titleSize}px 'Outfit', sans-serif`;
-    ctx.textBaseline = 'top';
-    titleLines.forEach((line, i) => {
-      ctx.fillText(line, textX, titleY + (i * titleSize * 1.2));
-    });
-
-    // Draw description
-    ctx.fillStyle = descColor;
-    ctx.font = `400 ${descSize}px 'Open Sans', sans-serif`;
-    descLines.forEach((line, i) => {
-      ctx.fillText(line, textX, descY + (i * descSize * 1.4));
-    });
-
-    // Draw domain
-    ctx.fillStyle = domainColor;
-    ctx.font = `400 11px 'Open Sans', sans-serif`;
-    ctx.fillText(domain.toUpperCase(), textX, domainY);
-
-    // Draw footer border
-    ctx.strokeStyle = '#dde';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padding + borderWeight, footerY);
-    ctx.lineTo(cardWidth - padding - borderWeight, footerY);
-    ctx.stroke();
-
-    ctx.fillStyle = '#666';
-    ctx.font = '400 11px \'Open Sans\', sans-serif';
-    ctx.fillText('Powered by 5th.Place | It starts with me...', padding + borderWeight, footerY + 12);
-
-    // Convert canvas to blob
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/png');
-    });
-  }
-
-  // Helper: Draw rounded rectangle
-  function drawRoundedRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-  }
-
-  // Helper: Wrap text to fit width
-  function wrapText(ctx, text, maxWidth) {
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
-
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = ctx.measureText(currentLine + ' ' + word).width;
-      if (width < maxWidth) {
-        currentLine += ' ' + word;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
-      }
-    }
-    lines.push(currentLine);
-    return lines;
-  }
 });
