@@ -25,6 +25,13 @@
 - Automatic fallback to default thumbnails when needed
 - Toggle between OG metadata images and smart selection
 
+### 🎨 **Favicon Brand Cards**
+- Universal brand cards using site favicons with automatic color detection
+- Intelligent edge-based color sampling for accurate brand colors
+- Independent border rendering for full-size and thumbnail images
+- Session-based toggle state management
+- Works with any website via Google's favicon API
+
 ### 💾 **Card Management**
 - Card history persistence with metadata tracking
 - Freshness indicator system (5-level battery-style display)
@@ -54,7 +61,7 @@
 ### Manual Installation (Developer Mode)
 
 **Option 1: Download Packed Extension (Recommended)**
-1. Download `og-card-generator.zip` from the [Releases](https://github.com/mandalaReopens/og-card-generator/releases) page
+1. Download `og-card-generator-v3.3.0.zip` from the [Releases](https://github.com/mandalaReopens/og-card-generator/releases) page
 2. Extract the zip file to a folder on your computer
 3. Open Chrome and navigate to `chrome://extensions/`
 4. Enable "Developer mode" in the top right
@@ -70,7 +77,7 @@
 
 ## 📖 How to Use
 
-1. **Generate a Card**: Enter a URL or use the "current tab" button
+1. **Generate a Card**: Enter a URL, toggle Smart Select/Brand Cards if desired, then use the "current tab" button or generate
 2. **Preview**: View the generated card with fetched metadata
 3. **Customize**: Adjust appearance in Formatting settings
 4. **Copy**: Copy as formatted HTML or raw code for email sharing
@@ -87,6 +94,7 @@
 ### Advanced
 - Image sizing and dimensions
 - Fetch timeout configuration
+- Session timeout configuration
 - Text length limits
 - Debug mode
 - Fallback image settings
@@ -129,6 +137,14 @@ Comprehensive formatting controls including colors, fonts, borders, and advanced
 ## 🎯 Version
 
 **Current Version**: 3.3.0
+
+### What's New in 3.3.0
+- 🎨 **Favicon Brand Cards** - Universal brand cards using site favicons with automatic color detection
+- 🔄 **Session-based Toggle Persistence** - Smart Select and Brand Cards state management with configurable timeout
+- 🎯 **Improved Color Sampling** - Edge-based histogram algorithm for accurate brand color detection
+- 🖼️ **Independent Border Rendering** - Separate border systems for full-size and thumbnail images
+- ✨ **Two-Color Gradient Spinner** - Visual feedback with OG green/yellow gradient animation
+- 🐛 **Bug Fixes** - Keyword filter, toggle state persistence, and color quantization improvements
 
 ## 🙏 Credits
 
